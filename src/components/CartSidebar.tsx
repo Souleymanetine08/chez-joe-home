@@ -34,19 +34,19 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
             className="fixed inset-0 bg-foreground/50 z-50"
           />
 
-          {/* Sidebar */}
+          {/* Sidebar - Full width sur mobile */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-card z-50 shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 h-full w-full sm:max-w-sm bg-card z-50 shadow-2xl flex flex-col"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            {/* Header - Plus compact */}
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-primary" />
-                <h2 className="font-display text-xl font-semibold">
+                <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <h2 className="font-display text-lg sm:text-xl font-semibold">
                   Ma Sélection ({items.length})
                 </h2>
               </div>
@@ -58,15 +58,15 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
               </button>
             </div>
 
-            {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Cart Items - Optimisé mobile */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
               {items.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground">
+                <div className="text-center py-8 sm:py-12">
+                  <ShoppingBag className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground/30 mb-3" />
+                  <p className="text-muted-foreground text-sm sm:text-base">
                     Votre sélection est vide
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Ajoutez des produits pour commander
                   </p>
                 </div>
@@ -78,42 +78,42 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: 100 }}
-                    className="flex gap-3 bg-secondary/50 rounded-lg p-3"
+                    className="flex gap-2 sm:gap-3 bg-secondary/50 rounded-lg p-2 sm:p-3"
                   >
-                    {/* Image */}
+                    {/* Image - Plus petite sur mobile */}
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="w-20 h-20 object-cover rounded-lg"
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
                     />
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm line-clamp-2">
+                      <h3 className="font-medium text-xs sm:text-sm line-clamp-2">
                         {item.name}
                       </h3>
-                      <p className="text-primary font-bold mt-1">
-                        {formatPrice(item.price * item.quantity)} FCFA
+                      <p className="text-primary font-bold text-sm sm:text-base mt-0.5">
+                        {formatPrice(item.price * item.quantity)} F
                       </p>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-2 mt-2">
+                      {/* Quantity Controls - Compact */}
+                      <div className="flex items-center gap-1 sm:gap-2 mt-1.5">
                         <button
                           onClick={() =>
                             updateQuantity(item.id, item.quantity - 1)
                           }
-                          className="w-7 h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="w-8 text-center font-medium">
+                        <span className="w-6 sm:w-8 text-center font-medium text-sm">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() =>
                             updateQuantity(item.id, item.quantity + 1)
                           }
-                          className="w-7 h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -121,9 +121,9 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         {/* Delete */}
                         <button
                           onClick={() => removeFromCart(item.id)}
-                          className="ml-auto p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                          className="ml-auto p-1.5 sm:p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       </div>
                     </div>
@@ -132,11 +132,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer - Compact sur mobile */}
             {items.length > 0 && (
-              <div className="border-t border-border p-4 space-y-4">
+              <div className="border-t border-border p-3 sm:p-4 space-y-3">
                 {/* Total */}
-                <div className="flex items-center justify-between text-lg font-bold">
+                <div className="flex items-center justify-between text-base sm:text-lg font-bold">
                   <span>Total</span>
                   <span className="text-primary">
                     {formatPrice(total)} FCFA
@@ -146,11 +146,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 {/* WhatsApp Button */}
                 <Button
                   onClick={handleWhatsAppOrder}
-                  className="w-full h-14 text-lg font-semibold"
+                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold"
                   style={{ backgroundColor: "#25D366" }}
                 >
                   <svg
-                    className="w-6 h-6 mr-2"
+                    className="w-5 h-5 sm:w-6 sm:h-6 mr-2"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -159,7 +159,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                   Commander via WhatsApp
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
                   📍 Livraison à Dakar • 📞 +221 77 383 66 24
                 </p>
               </div>
