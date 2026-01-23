@@ -1,0 +1,172 @@
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/CartContext";
+
+interface CartSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
+  const { items, total, updateQuantity, removeFromCart, generateWhatsAppUrl } =
+    useCart();
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("fr-SN").format(price);
+  };
+
+  const handleWhatsAppOrder = () => {
+    const url = generateWhatsAppUrl();
+    window.open(url, "_blank");
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-foreground/50 z-50"
+          />
+
+          {/* Sidebar */}
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-card z-50 shadow-2xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-xl font-semibold">
+                  Ma Sélection ({items.length})
+                </h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-muted rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Cart Items */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {items.length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <p className="text-muted-foreground">
+                    Votre sélection est vide
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Ajoutez des produits pour commander
+                  </p>
+                </div>
+              ) : (
+                items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: 100 }}
+                    className="flex gap-3 bg-secondary/50 rounded-lg p-3"
+                  >
+                    {/* Image */}
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-20 h-20 object-cover rounded-lg"
+                    />
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm line-clamp-2">
+                        {item.name}
+                      </h3>
+                      <p className="text-primary font-bold mt-1">
+                        {formatPrice(item.price * item.quantity)} FCFA
+                      </p>
+
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity - 1)
+                          }
+                          className="w-7 h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-8 text-center font-medium">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity + 1)
+                          }
+                          className="w-7 h-7 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="ml-auto p-2 text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {items.length > 0 && (
+              <div className="border-t border-border p-4 space-y-4">
+                {/* Total */}
+                <div className="flex items-center justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">
+                    {formatPrice(total)} FCFA
+                  </span>
+                </div>
+
+                {/* WhatsApp Button */}
+                <Button
+                  onClick={handleWhatsAppOrder}
+                  className="w-full h-14 text-lg font-semibold"
+                  style={{ backgroundColor: "#25D366" }}
+                >
+                  <svg
+                    className="w-6 h-6 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                  Commander via WhatsApp
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  📍 Livraison à Dakar • 📞 +221 77 383 66 24
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
