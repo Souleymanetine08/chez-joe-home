@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
+import { toast } from "sonner";
 import type { Product } from "@/data/products";
 
 interface SimpleProductCardProps {
@@ -22,6 +23,11 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
       name: product.name,
       price: product.price,
       image: product.image,
+    });
+    
+    toast.success(`${product.name} ajouté à votre sélection`, {
+      description: `${formatPrice(product.price)} FCFA`,
+      duration: 2000,
     });
   };
 

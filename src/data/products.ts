@@ -1,3 +1,25 @@
+// Product images imports
+import serviceTheDore from "@/assets/products/service-the-dore.jpg";
+import theiereMarocaine from "@/assets/products/theiere-marocaine.jpg";
+import verresTheDores from "@/assets/products/verres-the-dores.jpg";
+import plateauArgente from "@/assets/products/plateau-argente.jpg";
+import setAssiettes from "@/assets/products/set-assiettes.jpg";
+import platsService from "@/assets/products/plats-service.jpg";
+import bolsSoupe from "@/assets/products/bols-soupe.jpg";
+import setCouverts from "@/assets/products/set-couverts.jpg";
+import blender from "@/assets/products/blender.jpg";
+import bouilloire from "@/assets/products/bouilloire.jpg";
+import friteuse from "@/assets/products/friteuse.jpg";
+import cuiseurRiz from "@/assets/products/cuiseur-riz.jpg";
+import mixeurPlongeant from "@/assets/products/mixeur-plongeant.jpg";
+import lanterneLed from "@/assets/products/lanterne-led.jpg";
+import nappeBrodee from "@/assets/products/nappe-brodee.jpg";
+import setsTable from "@/assets/products/sets-table.jpg";
+import bougiesParfumees from "@/assets/products/bougies-parfumees.jpg";
+import boitesConservation from "@/assets/products/boites-conservation.jpg";
+import thermos from "@/assets/products/thermos.jpg";
+import distributeurJus from "@/assets/products/distributeur-jus.jpg";
+
 export interface Product {
   id: number;
   name: string;
@@ -24,7 +46,7 @@ export const products: Product[] = [
     name: "Service à Thé Doré 6 Personnes",
     category: "Service à Thé",
     price: 25000,
-    image: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=600",
+    image: serviceTheDore,
     inStock: true,
     description: "Service complet avec théière et 6 verres dorés",
   },
@@ -33,7 +55,7 @@ export const products: Product[] = [
     name: "Théière Traditionnelle Marocaine",
     category: "Service à Thé",
     price: 15000,
-    image: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=600",
+    image: theiereMarocaine,
     inStock: true,
     description: "Théière artisanale en inox avec finitions dorées",
   },
@@ -42,7 +64,7 @@ export const products: Product[] = [
     name: "Verres à Thé Dorés (Lot de 6)",
     category: "Service à Thé",
     price: 8000,
-    image: "https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=600",
+    image: verresTheDores,
     inStock: true,
     description: "Verres traditionnels avec motifs dorés",
   },
@@ -51,7 +73,7 @@ export const products: Product[] = [
     name: "Plateau de Service Argenté",
     category: "Service à Thé",
     price: 18000,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600",
+    image: plateauArgente,
     inStock: true,
     description: "Grand plateau oval pour service à thé",
   },
@@ -62,7 +84,7 @@ export const products: Product[] = [
     name: "Set d'Assiettes 12 Pièces",
     category: "Vaisselle",
     price: 35000,
-    image: "https://images.unsplash.com/photo-1603199506016-5d0e4e2f5b62?w=600",
+    image: setAssiettes,
     inStock: true,
     description: "Assiettes plates et creuses en porcelaine blanche",
   },
@@ -71,7 +93,7 @@ export const products: Product[] = [
     name: "Plats de Service (Lot de 3)",
     category: "Vaisselle",
     price: 22000,
-    image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600",
+    image: platsService,
     inStock: true,
     description: "Plats ovales de différentes tailles",
   },
@@ -80,7 +102,7 @@ export const products: Product[] = [
     name: "Bols à Soupe (Lot de 6)",
     category: "Vaisselle",
     price: 12000,
-    image: "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=600",
+    image: bolsSoupe,
     inStock: true,
     description: "Bols traditionnels pour soupe et thiéré",
   },
@@ -89,7 +111,7 @@ export const products: Product[] = [
     name: "Set de Couverts 24 Pièces",
     category: "Vaisselle",
     price: 28000,
-    image: "https://images.unsplash.com/photo-1593618998160-e34014e67546?w=600",
+    image: setCouverts,
     inStock: true,
     description: "Couverts en inox avec finition dorée",
   },
@@ -100,7 +122,7 @@ export const products: Product[] = [
     name: "Blender 3 Vitesses 1.5L",
     category: "Électroménager",
     price: 35000,
-    image: "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=600",
+    image: blender,
     inStock: true,
     description: "Parfait pour jus de fruits et smoothies",
   },
@@ -109,7 +131,7 @@ export const products: Product[] = [
     name: "Bouilloire Électrique Inox",
     category: "Électroménager",
     price: 18000,
-    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600",
+    image: bouilloire,
     inStock: true,
     description: "Bouilloire 1.7L avec arrêt automatique",
   },
@@ -118,7 +140,7 @@ export const products: Product[] = [
     name: "Friteuse Électrique 3L",
     category: "Électroménager",
     price: 45000,
-    image: "https://images.unsplash.com/photo-1585515320310-259814833e62?w=600",
+    image: friteuse,
     inStock: true,
     description: "Friteuse avec thermostat réglable",
   },
@@ -127,7 +149,7 @@ export const products: Product[] = [
     name: "Cuiseur à Riz 1.8L",
     category: "Électroménager",
     price: 25000,
-    image: "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b?w=600",
+    image: cuiseurRiz,
     inStock: true,
     description: "Cuiseur automatique avec fonction maintien au chaud",
   },
@@ -136,7 +158,7 @@ export const products: Product[] = [
     name: "Mixeur Plongeant",
     category: "Électroménager",
     price: 15000,
-    image: "https://images.unsplash.com/photo-1594385208974-2e75f8d7bb48?w=600",
+    image: mixeurPlongeant,
     inStock: true,
     description: "Mixeur puissant avec accessoires",
   },
@@ -147,7 +169,7 @@ export const products: Product[] = [
     name: "Lanterne Décorative LED",
     category: "Décoration",
     price: 12000,
-    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600",
+    image: lanterneLed,
     inStock: true,
     description: "Lanterne style oriental avec LED intégrée",
   },
@@ -156,7 +178,7 @@ export const products: Product[] = [
     name: "Nappe Festive Brodée",
     category: "Décoration",
     price: 20000,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600",
+    image: nappeBrodee,
     inStock: true,
     description: "Nappe élégante avec broderies dorées",
   },
@@ -165,7 +187,7 @@ export const products: Product[] = [
     name: "Set de Table (Lot de 6)",
     category: "Décoration",
     price: 8000,
-    image: "https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=600",
+    image: setsTable,
     inStock: true,
     description: "Sets de table assortis avec motifs",
   },
@@ -174,7 +196,7 @@ export const products: Product[] = [
     name: "Bougies Parfumées (Lot de 3)",
     category: "Décoration",
     price: 10000,
-    image: "https://images.unsplash.com/photo-1602607753857-9e65e5c02596?w=600",
+    image: bougiesParfumees,
     inStock: true,
     description: "Bougies parfum oud et musc",
   },
@@ -185,7 +207,7 @@ export const products: Product[] = [
     name: "Boîtes de Conservation (Set de 5)",
     category: "Rangement",
     price: 15000,
-    image: "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=600",
+    image: boitesConservation,
     inStock: true,
     description: "Boîtes hermétiques pour dattes et pâtisseries",
   },
@@ -194,7 +216,7 @@ export const products: Product[] = [
     name: "Thermos 2L Inox",
     category: "Rangement",
     price: 22000,
-    image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600",
+    image: thermos,
     inStock: true,
     description: "Thermos grande capacité garde au chaud 24h",
   },
@@ -203,7 +225,7 @@ export const products: Product[] = [
     name: "Distributeur de Jus 5L",
     category: "Rangement",
     price: 28000,
-    image: "https://images.unsplash.com/photo-1543352634-a1c51d545680?w=600",
+    image: distributeurJus,
     inStock: true,
     description: "Distributeur avec robinet pour bissap et bouye",
   },
