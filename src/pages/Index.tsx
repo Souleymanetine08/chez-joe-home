@@ -1,28 +1,23 @@
-import Header from "@/components/Header";
-import HeroSlider from "@/components/HeroSlider";
-import CategoryGrid from "@/components/CategoryGrid";
-import NewArrivals from "@/components/NewArrivals";
-import Promotions from "@/components/Promotions";
-import Services from "@/components/Services";
-import Testimonials from "@/components/Testimonials";
-import Newsletter from "@/components/Newsletter";
-import Footer from "@/components/Footer";
+import { CartProvider } from "@/context/CartContext";
+import SimpleHeader from "@/components/SimpleHeader";
+import RamadanHero from "@/components/RamadanHero";
+import RamadanCatalog from "@/components/RamadanCatalog";
+import SimpleFooter from "@/components/SimpleFooter";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main>
-        <HeroSlider />
-        <CategoryGrid />
-        <NewArrivals />
-        <Promotions />
-        <Services />
-        <Testimonials />
-        <Newsletter />
-      </main>
-      <Footer />
-    </div>
+    <CartProvider>
+      <div className="min-h-screen flex flex-col">
+        <SimpleHeader />
+        <main className="flex-1">
+          <RamadanHero />
+          <RamadanCatalog />
+        </main>
+        <SimpleFooter />
+        <WhatsAppFloatingButton />
+      </div>
+    </CartProvider>
   );
 };
 
