@@ -30,10 +30,10 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="bg-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
+      className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
     >
-      {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      {/* Image - Plus compact sur mobile */}
+      <div className="relative aspect-square overflow-hidden">
         <img
           src={product.image}
           alt={product.name}
@@ -42,35 +42,32 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
         />
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {/* Name */}
-        <h3 className="font-medium text-foreground text-sm md:text-base line-clamp-2 mb-2 min-h-[2.5rem]">
+      {/* Content - Padding réduit sur mobile */}
+      <div className="p-2 sm:p-3">
+        {/* Name - Taille réduite sur mobile */}
+        <h3 className="font-medium text-foreground text-xs sm:text-sm line-clamp-2 mb-1 min-h-[2rem] sm:min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        {/* Price */}
-        <p className="text-primary font-bold text-lg mb-2">
-          {formatPrice(product.price)} FCFA
-        </p>
-
-        {/* Stock Status */}
-        <div className="flex items-center gap-1 mb-3">
+        {/* Price & Stock - Layout compact */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-primary font-bold text-sm sm:text-base">
+            {formatPrice(product.price)} F
+          </p>
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${
               product.inStock ? "bg-green-500" : "bg-red-500"
             }`}
+            title={product.inStock ? "Disponible" : "Sur commande"}
           />
-          <span className="text-xs text-muted-foreground">
-            {product.inStock ? "Disponible" : "Sur commande"}
-          </span>
         </div>
 
-        {/* Add Button */}
+        {/* Add Button - Plus compact */}
         <Button
           onClick={handleAddToCart}
           variant={inCart ? "secondary" : "default"}
-          className={`w-full ${
+          size="sm"
+          className={`w-full h-8 sm:h-9 text-xs sm:text-sm ${
             inCart
               ? "bg-green-500/10 text-green-600 hover:bg-green-500/20"
               : "bg-primary hover:bg-primary-dark text-primary-foreground"
@@ -78,12 +75,12 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
         >
           {inCart ? (
             <>
-              <Check className="h-4 w-4 mr-2" />
+              <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Ajouté
             </>
           ) : (
             <>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               Ajouter
             </>
           )}
