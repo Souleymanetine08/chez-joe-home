@@ -3,11 +3,10 @@ import { ShoppingBag, Moon } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import CartSidebar from "./CartSidebar";
 import logo from "@/assets/logo-chezjoe.jpg";
+
 export default function SimpleHeader() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const {
-    itemCount
-  } = useCart();
+  const { itemCount, justAdded } = useCart();
   return <>
       <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
         <div className="container-custom">
@@ -27,12 +26,21 @@ export default function SimpleHeader() {
             </div>
 
             {/* Cart Button */}
-            <button onClick={() => setIsCartOpen(true)} className="relative flex items-center gap-2 bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-full font-medium transition-colors">
-              <ShoppingBag className="h-5 w-5" />
+            <button 
+              onClick={() => setIsCartOpen(true)} 
+              className={`relative flex items-center gap-2 bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                justAdded ? "animate-cart-bounce scale-110" : ""
+              }`}
+            >
+              <ShoppingBag className={`h-5 w-5 transition-transform duration-300 ${justAdded ? "animate-wiggle" : ""}`} />
               <span className="hidden sm:inline">Ma Sélection</span>
-              {itemCount > 0 && <span className="absolute -top-1 -right-1 bg-gold text-gold-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+              {itemCount > 0 && (
+                <span className={`absolute -top-1 -right-1 bg-gold text-gold-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center transition-transform duration-300 ${
+                  justAdded ? "scale-125" : ""
+                }`}>
                   {itemCount}
-                </span>}
+                </span>
+              )}
             </button>
           </div>
         </div>

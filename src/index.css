@@ -239,3 +239,42 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Cart button animations */
+@keyframes cart-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.15);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-15deg);
+  }
+  50% {
+    transform: rotate(15deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+.animate-cart-bounce {
+  animation: cart-bounce 0.5s ease-out;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-out;
+}

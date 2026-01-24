@@ -12,6 +12,7 @@ interface CartContextType {
   items: CartItem[];
   total: number;
   itemCount: number;
+  justAdded: boolean;
   addToCart: (product: Omit<CartItem, "quantity">) => void;
   removeFromCart: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
@@ -24,11 +25,15 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [justAdded, setJustAdded] = useState(false);
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
 
   const addToCart = useCallback((product: Omit<CartItem, "quantity">) => {
+    // Trigger animation
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 600);
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -97,6 +102,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         total,
         itemCount,
+        justAdded,
         addToCart,
         removeFromCart,
         updateQuantity,
