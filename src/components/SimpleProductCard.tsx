@@ -3,15 +3,26 @@ import { Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
-import type { Product } from "@/data/products";
+
+export interface ProductCardData {
+  id: string | number;
+  name: string;
+  category?: string;
+  price: number;
+  image: string;
+  inStock: boolean;
+  description?: string;
+}
 
 interface SimpleProductCardProps {
-  product: Product;
+  product: ProductCardData;
 }
 
 export default function SimpleProductCard({ product }: SimpleProductCardProps) {
   const { addToCart, isInCart } = useCart();
-  const inCart = isInCart(product.id);
+  // Convert id to number for cart compatibility
+  const numericId = typeof product.id === "string" ? parseInt(product.id, 16) % 1000000 : product.id;
+  const inCart = isInCart(numericId);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("fr-SN").format(price);
@@ -19,7 +30,7 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
 
   const handleAddToCart = () => {
     addToCart({
-      id: product.id,
+      id: numericId,
       name: product.name,
       price: product.price,
       image: product.image,
