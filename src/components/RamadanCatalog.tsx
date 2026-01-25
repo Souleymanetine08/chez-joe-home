@@ -2,14 +2,39 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import SimpleProductCard from "./SimpleProductCard";
-import { products, categories } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SortOption = "default" | "price-asc" | "price-desc";
 
 export default function RamadanCatalog() {
+  const { data: dbProducts, isLoading: productsLoading } = useProducts();
+  const { data: dbCategories, isLoading: categoriesLoading } = useCategories();
+  
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("default");
+
+  // Transform DB products to the format expected by SimpleProductCard
+  const products = useMemo(() => {
+    if (!dbProducts) return [];
+    return dbProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category?.name || "Non classé",
+      price: p.price,
+      image: p.image_url || "/placeholder.svg",
+      inStock: p.in_stock,
+      description: p.description || undefined,
+    }));
+  }, [dbProducts]);
+
+  // Transform categories
+  const categories = useMemo(() => {
+    if (!dbCategories) return ["Tous"];
+    return ["Tous", ...dbCategories.map((c) => c.name)];
+  }, [dbCategories]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products;
@@ -35,7 +60,7 @@ export default function RamadanCatalog() {
     }
 
     return result;
-  }, [activeCategory, searchQuery, sortBy]);
+  }, [products, activeCategory, searchQuery, sortBy]);
 
   const cycleSortOption = () => {
     if (sortBy === "default") setSortBy("price-asc");
@@ -55,6 +80,8 @@ export default function RamadanCatalog() {
     return "Trier";
   };
 
+  const isLoading = productsLoading || categoriesLoading;
+
   return (
     <section id="catalogue" className="section-padding bg-secondary/30">
       <div className="container-custom">
@@ -69,8 +96,14 @@ export default function RamadanCatalog() {
             Notre Sélection
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {filteredAndSortedProducts.length} produit{filteredAndSortedProducts.length > 1 ? "s" : ""} 
-            {searchQuery && ` pour "${searchQuery}"`}
+            {isLoading ? (
+              <Skeleton className="h-4 w-32 mx-auto" />
+            ) : (
+              <>
+                {filteredAndSortedProducts.length} produit{filteredAndSortedProducts.length > 1 ? "s" : ""} 
+                {searchQuery && ` pour "${searchQuery}"`}
+              </>
+            )}
           </p>
         </motion.div>
 
@@ -114,23 +147,39 @@ export default function RamadanCatalog() {
           viewport={{ once: true }}
           className="flex overflow-x-auto gap-2 mb-4 sm:mb-6 pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center"
         >
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                activeCategory === category
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card hover:bg-muted text-foreground"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-20 rounded-full flex-shrink-0" />
+            ))
+          ) : (
+            categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                  activeCategory === category
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card hover:bg-muted text-foreground"
+                }`}
+              >
+                {category}
+              </button>
+            ))
+          )}
         </motion.div>
 
         {/* Products Grid - 2 colonnes sur mobile */}
-        {filteredAndSortedProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="aspect-square rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : filteredAndSortedProducts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
             {filteredAndSortedProducts.map((product) => (
               <SimpleProductCard key={product.id} product={product} />
