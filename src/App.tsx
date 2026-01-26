@@ -12,8 +12,21 @@ import Dashboard from "./pages/admin/Dashboard";
 import Products from "./pages/admin/Products";
 import Categories from "./pages/admin/Categories";
 import Orders from "./pages/admin/Orders";
+import Users from "./pages/admin/Users";
+import Settings from "./pages/admin/Settings";
+import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
+
+// Wrapper component for admin-only routes
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isLoading } = useAuth();
+  
+  if (isLoading) return null;
+  if (!isAdmin) return <NotFound />;
+  
+  return <>{children}</>;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -38,6 +51,15 @@ const App = () => (
             <Route path="products" element={<Products />} />
             <Route path="categories" element={<Categories />} />
             <Route path="orders" element={<Orders />} />
+            <Route path="settings" element={<Settings />} />
+            <Route
+              path="users"
+              element={
+                <AdminOnlyRoute>
+                  <Users />
+                </AdminOnlyRoute>
+              }
+            />
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
