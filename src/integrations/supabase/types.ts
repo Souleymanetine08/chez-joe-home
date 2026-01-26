@@ -121,6 +121,72 @@ export type Database = {
           },
         ]
       }
+      site_sections: {
+        Row: {
+          background_type: string | null
+          background_value: string | null
+          content: Json | null
+          created_at: string
+          display_order: number
+          id: string
+          is_visible: boolean
+          section_key: string
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          background_type?: string | null
+          background_value?: string | null
+          content?: Json | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_visible?: boolean
+          section_key: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          background_type?: string | null
+          background_value?: string | null
+          content?: Json | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_visible?: boolean
+          section_key?: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

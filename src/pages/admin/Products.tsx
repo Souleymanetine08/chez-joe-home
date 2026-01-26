@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadProductImage } from "@/lib/uploadImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Loader2, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -70,6 +71,8 @@ export default function Products() {
   const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = products?.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -91,6 +94,43 @@ export default function Products() {
       setFormData(emptyFormData);
     }
     setIsDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const imageUrl = await uploadProductImage(file);
+      if (imageUrl) {
+        setFormData({ ...formData, image_url: imageUrl });
+        toast.success("Image uploadée");
+      } else {
+        toast.error("Erreur lors de l'upload");
+      }
+    } catch (error) {
+      toast.error("Erreur lors de l'upload");
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image_url: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,7 +204,7 @@ export default function Products() {
               Ajouter
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? "Modifier le produit" : "Nouveau produit"}
@@ -227,17 +267,62 @@ export default function Products() {
                   </Select>
                 </div>
               </div>
+
+              {/* Image Upload */}
               <div className="space-y-2">
-                <Label htmlFor="image_url">URL de l'image</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  placeholder="https://..."
+                <Label>Image du produit</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
                 />
+                
+                {formData.image_url ? (
+                  <div className="relative">
+                    <img
+                      src={formData.image_url}
+                      alt="Aperçu"
+                      className="w-full h-40 object-cover rounded-lg border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full h-40 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Upload en cours...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Cliquez pour uploader une image
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Max 5 Mo
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="in_stock">En stock</Label>
                 <Switch
@@ -331,8 +416,8 @@ export default function Products() {
                     <span
                       className={`inline-block px-2 py-0.5 text-xs rounded-full ${
                         product.in_stock
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-destructive/10 text-destructive"
                       }`}
                     >
                       {product.in_stock ? "En stock" : "Épuisé"}
