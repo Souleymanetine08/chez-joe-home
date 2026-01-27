@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Loader2, Package, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Upload, X, Eye, EyeOff, Images } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -50,6 +50,11 @@ interface ProductFormData {
   category_id: string;
   in_stock: boolean;
   image_url: string;
+  images: string[];
+  show_detail_page: boolean;
+  size_small: string;
+  size_large: string;
+  dimensions_unit: string;
 }
 
 const emptyFormData: ProductFormData = {
@@ -59,6 +64,11 @@ const emptyFormData: ProductFormData = {
   category_id: "",
   in_stock: true,
   image_url: "",
+  images: [],
+  show_detail_page: true,
+  size_small: "",
+  size_large: "",
+  dimensions_unit: "cm",
 };
 
 export default function Products() {
@@ -72,7 +82,9 @@ export default function Products() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingAdditional, setIsUploadingAdditional] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalFileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = products?.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -88,6 +100,11 @@ export default function Products() {
         category_id: product.category_id || "",
         in_stock: product.in_stock,
         image_url: product.image_url || "",
+        images: product.images || [],
+        show_detail_page: product.show_detail_page ?? true,
+        size_small: product.size_small || "",
+        size_large: product.size_large || "",
+        dimensions_unit: product.dimensions_unit || "cm",
       });
     } else {
       setEditingProduct(null);
@@ -96,7 +113,7 @@ export default function Products() {
     setIsDialogOpen(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isAdditional = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -112,11 +129,20 @@ export default function Products() {
       return;
     }
 
-    setIsUploading(true);
+    if (isAdditional) {
+      setIsUploadingAdditional(true);
+    } else {
+      setIsUploading(true);
+    }
+
     try {
       const imageUrl = await uploadProductImage(file);
       if (imageUrl) {
-        setFormData({ ...formData, image_url: imageUrl });
+        if (isAdditional) {
+          setFormData({ ...formData, images: [...formData.images, imageUrl] });
+        } else {
+          setFormData({ ...formData, image_url: imageUrl });
+        }
         toast.success("Image uploadée");
       } else {
         toast.error("Erreur lors de l'upload");
@@ -126,11 +152,19 @@ export default function Products() {
       console.error(error);
     } finally {
       setIsUploading(false);
+      setIsUploadingAdditional(false);
     }
   };
 
   const handleRemoveImage = () => {
     setFormData({ ...formData, image_url: "" });
+  };
+
+  const handleRemoveAdditionalImage = (index: number) => {
+    setFormData({
+      ...formData,
+      images: formData.images.filter((_, i) => i !== index),
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,6 +178,11 @@ export default function Products() {
       category_id: formData.category_id || null,
       in_stock: formData.in_stock,
       image_url: formData.image_url || null,
+      images: formData.images,
+      show_detail_page: formData.show_detail_page,
+      size_small: formData.size_small || null,
+      size_large: formData.size_large || null,
+      dimensions_unit: formData.dimensions_unit || "cm",
     };
 
     try {
@@ -186,6 +225,27 @@ export default function Products() {
     }
   };
 
+  const toggleDetailPage = async (product: Product) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ show_detail_page: !product.show_detail_page })
+        .eq("id", product.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(
+        product.show_detail_page
+          ? "Page détail masquée"
+          : "Page détail activée"
+      );
+    } catch (error) {
+      toast.error("Erreur");
+      console.error(error);
+    }
+  };
+
+  const totalImages = formData.image_url ? 1 + formData.images.length : formData.images.length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -204,7 +264,7 @@ export default function Products() {
               Ajouter
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? "Modifier le produit" : "Nouveau produit"}
@@ -268,15 +328,58 @@ export default function Products() {
                 </div>
               </div>
 
-              {/* Image Upload */}
+              {/* Dimensions */}
               <div className="space-y-2">
-                <Label>Image du produit</Label>
+                <Label>Dimensions (optionnel)</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Input
+                      placeholder="Petite taille"
+                      value={formData.size_small}
+                      onChange={(e) =>
+                        setFormData({ ...formData, size_small: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Grande taille"
+                      value={formData.size_large}
+                      onChange={(e) =>
+                        setFormData({ ...formData, size_large: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Select
+                      value={formData.dimensions_unit}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, dimensions_unit: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cm">cm</SelectItem>
+                        <SelectItem value="mm">mm</SelectItem>
+                        <SelectItem value="m">m</SelectItem>
+                        <SelectItem value="pouces">pouces</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Image Upload */}
+              <div className="space-y-2">
+                <Label>Image principale</Label>
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
                   ref={fileInputRef}
-                  onChange={handleImageUpload}
+                  onChange={(e) => handleImageUpload(e, false)}
                 />
                 
                 {formData.image_url ? (
@@ -299,7 +402,7 @@ export default function Products() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="w-full h-40 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                    className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors"
                   >
                     {isUploading ? (
                       <>
@@ -312,10 +415,7 @@ export default function Products() {
                       <>
                         <Upload className="h-8 w-8 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          Cliquez pour uploader une image
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          Max 5 Mo
+                          Cliquez pour uploader
                         </span>
                       </>
                     )}
@@ -323,16 +423,91 @@ export default function Products() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label htmlFor="in_stock">En stock</Label>
-                <Switch
-                  id="in_stock"
-                  checked={formData.in_stock}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, in_stock: checked })
-                  }
+              {/* Additional Images */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Images supplémentaires ({formData.images.length}/3)</Label>
+                  {formData.images.length < 3 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => additionalFileInputRef.current?.click()}
+                      disabled={isUploadingAdditional}
+                    >
+                      {isUploadingAdditional ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Ajouter
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={additionalFileInputRef}
+                  onChange={(e) => handleImageUpload(e, true)}
                 />
+                
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={img}
+                          alt={`Image ${index + 2}`}
+                          className="w-full h-20 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAdditionalImage(index)}
+                          className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {totalImages < 3 && `Ajoutez au moins 3 images pour la page détail (${totalImages}/3)`}
+                </p>
               </div>
+
+              {/* Toggles */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="in_stock">En stock</Label>
+                  <Switch
+                    id="in_stock"
+                    checked={formData.in_stock}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, in_stock: checked })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="show_detail_page">Page détail</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permet d'accéder à une page produit complète
+                    </p>
+                  </div>
+                  <Switch
+                    id="show_detail_page"
+                    checked={formData.show_detail_page}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, show_detail_page: checked })
+                    }
+                  />
+                </div>
+              </div>
+
               <Button type="submit" className="w-full" disabled={isSaving}>
                 {isSaving ? (
                   <>
@@ -362,7 +537,7 @@ export default function Products() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -370,6 +545,7 @@ export default function Products() {
               <TableHead>Catégorie</TableHead>
               <TableHead>Prix</TableHead>
               <TableHead>Stock</TableHead>
+              <TableHead>Page</TableHead>
               <TableHead className="w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -386,6 +562,7 @@ export default function Products() {
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-16" /></TableCell>
                 </TableRow>
               ))
@@ -394,18 +571,32 @@ export default function Products() {
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-10 w-10 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="font-medium">{product.name}</span>
+                      <div className="relative">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-10 w-10 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        {(product.images?.length || 0) > 0 && (
+                          <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                            +{product.images?.length}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-medium">{product.name}</span>
+                        {product.size_small && (
+                          <p className="text-xs text-muted-foreground">
+                            {product.size_small} - {product.size_large} {product.dimensions_unit}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -422,6 +613,27 @@ export default function Products() {
                     >
                       {product.in_stock ? "En stock" : "Épuisé"}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      onClick={() => toggleDetailPage(product)}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        product.show_detail_page
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      title={
+                        product.show_detail_page
+                          ? "Page détail visible"
+                          : "Page détail masquée"
+                      }
+                    >
+                      {product.show_detail_page ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </button>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -451,7 +663,7 @@ export default function Products() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   {search ? "Aucun produit trouvé" : "Aucun produit"}
                 </TableCell>
               </TableRow>

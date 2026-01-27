@@ -44,35 +44,44 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
           id: string
           items: Json
           notes: string | null
+          notified_at: string | null
           status: Database["public"]["Enums"]["order_status"]
           total: number
+          tracking_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           id?: string
           items: Json
           notes?: string | null
+          notified_at?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total: number
+          tracking_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           id?: string
           items?: Json
           notes?: string | null
+          notified_at?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
+          tracking_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -82,33 +91,48 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          dimensions_unit: string | null
           id: string
           image_url: string | null
+          images: string[] | null
           in_stock: boolean
           name: string
           price: number
+          show_detail_page: boolean | null
+          size_large: string | null
+          size_small: string | null
           updated_at: string
         }
         Insert: {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          dimensions_unit?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           in_stock?: boolean
           name: string
           price: number
+          show_detail_page?: boolean | null
+          size_large?: string | null
+          size_small?: string | null
           updated_at?: string
         }
         Update: {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          dimensions_unit?: string | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           in_stock?: boolean
           name?: string
           price?: number
+          show_detail_page?: boolean | null
+          size_large?: string | null
+          size_small?: string | null
           updated_at?: string
         }
         Relationships: [

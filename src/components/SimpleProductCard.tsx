@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ export interface ProductCardData {
   image: string;
   inStock: boolean;
   description?: string;
+  showDetailPage?: boolean;
 }
 
 interface SimpleProductCardProps {
@@ -28,7 +30,10 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
     return new Intl.NumberFormat("fr-SN").format(price);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     addToCart({
       id: numericId,
       name: product.name,
@@ -42,21 +47,21 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
     });
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
-    >
+  const CardContent = (
+    <>
       {/* Image - Plus compact sur mobile */}
       <div className="relative aspect-square overflow-hidden">
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
+        {product.showDetailPage && (
+          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
+            <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+          </div>
+        )}
       </div>
 
       {/* Content - Padding réduit sur mobile */}
@@ -103,6 +108,33 @@ export default function SimpleProductCard({ product }: SimpleProductCardProps) {
           )}
         </Button>
       </div>
+    </>
+  );
+
+  // If showDetailPage is enabled, wrap in Link
+  if (product.showDetailPage) {
+    return (
+      <Link to={`/produit/${product.id}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="group bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+        >
+          {CardContent}
+        </motion.div>
+      </Link>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
+    >
+      {CardContent}
     </motion.div>
   );
 }

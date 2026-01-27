@@ -27,6 +27,7 @@ export default function RamadanCatalog() {
       image: p.image_url || "/placeholder.svg",
       inStock: p.in_stock,
       description: p.description || undefined,
+      showDetailPage: p.show_detail_page ?? true,
     }));
   }, [dbProducts]);
 
