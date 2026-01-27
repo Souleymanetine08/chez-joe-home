@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Eye, Loader2, ShoppingCart } from "lucide-react";
+import { Search, Eye, ShoppingCart, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order } from "@/hooks/useOrders";
@@ -71,7 +71,8 @@ export default function Orders() {
     const matchesSearch =
       order.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
       order.customer_phone?.includes(search) ||
-      order.id.includes(search);
+      order.id.includes(search) ||
+      order.tracking_id?.includes(search);
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -83,6 +84,13 @@ export default function Orders() {
     } catch (error) {
       toast.error("Erreur lors de la mise à jour");
     }
+  };
+
+  const copyTrackingLink = (trackingId: string | null) => {
+    if (!trackingId) return;
+    const link = `${window.location.origin}/suivi/${trackingId}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Lien de suivi copié !");
   };
 
   const orderItems = selectedOrder?.items as Array<{
@@ -129,16 +137,16 @@ export default function Orders() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Commande</TableHead>
+              <TableHead>N° Suivi</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="w-24">Actions</TableHead>
+              <TableHead className="w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -156,8 +164,10 @@ export default function Orders() {
             ) : filteredOrders && filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-mono text-sm">
-                    #{order.id.slice(0, 8)}
+                  <TableCell>
+                    <code className="text-xs bg-secondary px-1.5 py-0.5 rounded font-mono">
+                      {order.tracking_id?.toUpperCase() || order.id.slice(0, 8)}
+                    </code>
                   </TableCell>
                   <TableCell>
                     <div>
@@ -197,13 +207,24 @@ export default function Orders() {
                     {formatDate(order.created_at)}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedOrder(order)}
+                        title="Voir les détails"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyTrackingLink(order.tracking_id)}
+                        title="Copier le lien de suivi"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -225,12 +246,46 @@ export default function Orders() {
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              Commande #{selectedOrder?.id.slice(0, 8)}
+            <DialogTitle className="flex items-center gap-2">
+              Commande 
+              <code className="text-sm bg-secondary px-2 py-0.5 rounded">
+                {selectedOrder?.tracking_id?.toUpperCase()}
+              </code>
             </DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              {/* Tracking Link */}
+              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Lien de suivi client</p>
+                  <code className="text-xs break-all">
+                    {window.location.origin}/suivi/{selectedOrder.tracking_id}
+                  </code>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyTrackingLink(selectedOrder.tracking_id)}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copier
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <a
+                    href={`/suivi/${selectedOrder.tracking_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Client</p>

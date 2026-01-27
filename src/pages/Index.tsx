@@ -1,4 +1,3 @@
-import { CartProvider } from "@/context/CartContext";
 import SimpleHeader from "@/components/SimpleHeader";
 import RamadanHero from "@/components/RamadanHero";
 import RamadanCatalog from "@/components/RamadanCatalog";
@@ -7,17 +6,15 @@ import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 
 const Index = () => {
   return (
-    <CartProvider>
-      <div className="min-h-screen flex flex-col">
-        <SimpleHeader />
-        <main className="flex-1">
-          <RamadanHero />
-          <RamadanCatalog />
-        </main>
-        <SimpleFooter />
-        <WhatsAppFloatingButton />
-      </div>
-    </CartProvider>
+    <div className="min-h-screen flex flex-col">
+      <SimpleHeader />
+      <main className="flex-1">
+        <RamadanHero />
+        <RamadanCatalog />
+      </main>
+      <SimpleFooter />
+      <WhatsAppFloatingButton />
+    </div>
   );
 };
 

@@ -32,7 +32,7 @@ export default function RamadanHero() {
     }
     if (backgroundType === "image" && backgroundValue) {
       return {
-        backgroundImage: `linear-gradient(to bottom right, rgba(26, 54, 93, 0.85), rgba(15, 35, 60, 0.95)), url(${backgroundValue})`,
+        backgroundImage: `url(${backgroundValue})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       };
@@ -42,7 +42,7 @@ export default function RamadanHero() {
 
   return (
     <section
-      className="relative min-h-[60vh] flex items-center justify-center bg-gradient-to-br from-primary via-primary-dark to-primary overflow-hidden"
+      className="relative min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-primary via-primary-dark to-primary overflow-hidden"
       style={getBackgroundStyles()}
     >
       {/* Video/GIF Background */}
@@ -64,7 +64,6 @@ export default function RamadanHero() {
               className="w-full h-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary-dark/90 to-primary/95" />
         </div>
       )}
 

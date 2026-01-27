@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Store, Truck, Check, Loader2 } from "lucide-react";
+import { X, MapPin, Store, Truck, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/context/CartContext";
 import { useStoreInfo, useDeliveryOptions, usePromoSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -16,6 +17,12 @@ interface CheckoutModalProps {
 }
 
 type DeliveryMode = "pickup" | "delivery";
+
+interface FormErrors {
+  name?: string;
+  phone?: string;
+  address?: string;
+}
 
 export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { items, total, clearCart } = useCart();
@@ -28,33 +35,76 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [customerAddress, setCustomerAddress] = useState("");
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const addressInputRef = useRef<HTMLTextAreaElement>(null);
 
   const freeDeliveryThreshold = storeInfo?.free_delivery_threshold || 50000;
   const isFreeDelivery = total >= freeDeliveryThreshold;
   const whatsappNumber = storeInfo?.whatsapp || "221773836624";
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      // Focus first input when modal opens
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  // Real-time validation
+  useEffect(() => {
+    const newErrors: FormErrors = {};
+
+    if (touched.name && !customerName.trim()) {
+      newErrors.name = "Le nom est requis";
+    } else if (touched.name && customerName.trim().length < 2) {
+      newErrors.name = "Le nom doit contenir au moins 2 caractères";
+    }
+
+    if (touched.phone && !customerPhone.trim()) {
+      newErrors.phone = "Le téléphone est requis";
+    } else if (touched.phone && !/^[0-9\s+()-]{8,}$/.test(customerPhone.trim())) {
+      newErrors.phone = "Numéro de téléphone invalide";
+    }
+
+    if (touched.address && deliveryMode === "delivery" && !customerAddress.trim()) {
+      newErrors.address = "L'adresse est requise pour la livraison";
+    }
+
+    setErrors(newErrors);
+  }, [customerName, customerPhone, customerAddress, deliveryMode, touched]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("fr-SN").format(price);
   };
 
-  const generateWhatsAppMessage = () => {
+  const generateWhatsAppMessage = (trackingId: string) => {
     let message = `🛒 NOUVELLE COMMANDE - CHEZ JOE\n\n`;
     message += `CLIENT : ${customerName}\n`;
     message += `TEL : ${customerPhone}\n`;
-    
+
     if (deliveryMode === "delivery") {
       message += `ADRESSE : ${customerAddress}\n`;
     }
-    
+
     message += `\nARTICLES :\n`;
-    
+
     items.forEach((item) => {
       const lineTotal = item.price * item.quantity;
       message += `• ${item.quantity}x ${item.name} (${formatPrice(lineTotal)} F)\n`;
     });
-    
+
     message += `\nTOTAL PRODUITS : ${formatPrice(total)} FCFA\n\n`;
-    
+
     if (deliveryMode === "pickup") {
       message += `MODE : Retrait en boutique\n`;
     } else {
@@ -65,11 +115,59 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       }
     }
 
+    message += `\n📦 Suivi : ${window.location.origin}/suivi/${trackingId}`;
+
     return message;
+  };
+
+  const validateForm = (): boolean => {
+    const newTouched = { name: true, phone: true, address: true };
+    setTouched(newTouched);
+
+    const newErrors: FormErrors = {};
+
+    if (!customerName.trim()) {
+      newErrors.name = "Le nom est requis";
+    } else if (customerName.trim().length < 2) {
+      newErrors.name = "Le nom doit contenir au moins 2 caractères";
+    }
+
+    if (!customerPhone.trim()) {
+      newErrors.phone = "Le téléphone est requis";
+    } else if (!/^[0-9\s+()-]{8,}$/.test(customerPhone.trim())) {
+      newErrors.phone = "Numéro de téléphone invalide";
+    }
+
+    if (deliveryMode === "delivery" && !customerAddress.trim()) {
+      newErrors.address = "L'adresse est requise pour la livraison";
+    }
+
+    setErrors(newErrors);
+
+    // Focus first error field
+    if (newErrors.name) {
+      nameInputRef.current?.focus();
+      return false;
+    }
+    if (newErrors.phone) {
+      phoneInputRef.current?.focus();
+      return false;
+    }
+    if (newErrors.address) {
+      addressInputRef.current?.focus();
+      return false;
+    }
+
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -82,33 +180,61 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
         image: item.image,
       }));
 
-      await supabase.from("orders").insert({
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        items: orderItems,
-        total: total,
-        notes: deliveryMode === "delivery" 
-          ? `Adresse: ${customerAddress}${isFreeDelivery ? " | Livraison offerte" : " | Livraison à régler au livreur"}`
-          : "Retrait en boutique",
-        status: "pending",
-      });
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          items: orderItems,
+          total: total,
+          notes:
+            deliveryMode === "delivery"
+              ? `Adresse: ${customerAddress}${isFreeDelivery ? " | Livraison offerte" : " | Livraison à régler au livreur"}`
+              : "Retrait en boutique",
+          status: "pending",
+        })
+        .select("tracking_id")
+        .single();
+
+      if (error) throw error;
+
+      const trackingId = data?.tracking_id || "";
 
       // Generate WhatsApp URL and redirect
-      const message = generateWhatsAppMessage();
+      const message = generateWhatsAppMessage(trackingId);
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-      
+
+      // Show success toast
+      toast.success("Commande envoyée !", {
+        description: `Suivez votre commande avec le code : ${trackingId.toUpperCase()}`,
+      });
+
       window.open(whatsappUrl, "_blank");
       clearCart();
       onClose();
+
+      // Reset form
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setTouched({});
+      setErrors({});
     } catch (error) {
       console.error("Error saving order:", error);
+      toast.error("Erreur lors de l'envoi de la commande");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isFormValid = customerName.trim() && customerPhone.trim() && 
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const isFormValid =
+    customerName.trim().length >= 2 &&
+    /^[0-9\s+()-]{8,}$/.test(customerPhone.trim()) &&
     (deliveryMode === "pickup" || customerAddress.trim());
 
   const modal = (
@@ -121,20 +247,21 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-foreground/50 z-50"
+            className="fixed inset-0 bg-foreground/50 z-[100]"
           />
 
-          {/* Centering layer */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Centering layer with safe-area padding */}
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-[env(safe-area-inset-bottom,16px)]">
             {/* Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              className="w-full sm:max-w-md bg-card rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full sm:max-w-md bg-card rounded-2xl shadow-2xl flex flex-col max-h-[calc(100vh-2rem-env(safe-area-inset-bottom,0px))] overflow-hidden"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
                 <h2 className="font-display text-xl font-semibold">
                   Finaliser la commande
                 </h2>
@@ -147,30 +274,52 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain"
+              >
                 {/* Customer Info */}
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="name">Votre nom *</Label>
                     <Input
+                      ref={nameInputRef}
                       id="name"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
+                      onBlur={() => handleBlur("name")}
                       placeholder="Ex: Fatou Diallo"
-                      required
+                      className={errors.name ? "border-destructive" : ""}
+                      autoComplete="name"
                     />
+                    {errors.name && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Téléphone *</Label>
                     <Input
+                      ref={phoneInputRef}
                       id="phone"
                       type="tel"
+                      inputMode="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
+                      onBlur={() => handleBlur("phone")}
                       placeholder="Ex: 77 123 45 67"
-                      required
+                      className={errors.phone ? "border-destructive" : ""}
+                      autoComplete="tel"
                     />
+                    {errors.phone && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -224,34 +373,47 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                       <p className="text-xs text-muted-foreground mt-1">
                         {isFreeDelivery
                           ? promoSettings?.free_delivery_message || "Livraison Offerte"
-                          : deliveryOptions?.delivery.description || "Frais à régler au livreur"}
+                          : deliveryOptions?.delivery.description ||
+                            "Frais à régler au livreur"}
                       </p>
                     </button>
                   </div>
                 </div>
 
                 {/* Address (only for delivery) */}
-                {deliveryMode === "delivery" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="address">
-                      <MapPin className="h-4 w-4 inline mr-1" />
-                      Adresse de livraison *
-                    </Label>
-                    <Textarea
-                      id="address"
-                      value={customerAddress}
-                      onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="Ex: Quartier Almadies, près du monument..."
-                      rows={2}
-                      required={deliveryMode === "delivery"}
-                    />
-                  </motion.div>
-                )}
+                <AnimatePresence>
+                  {deliveryMode === "delivery" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      <Label htmlFor="address">
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Adresse de livraison *
+                      </Label>
+                      <Textarea
+                        ref={addressInputRef}
+                        id="address"
+                        value={customerAddress}
+                        onChange={(e) => setCustomerAddress(e.target.value)}
+                        onBlur={() => handleBlur("address")}
+                        placeholder="Ex: Quartier Almadies, près du monument..."
+                        rows={2}
+                        className={errors.address ? "border-destructive" : ""}
+                        autoComplete="street-address"
+                      />
+                      {errors.address && (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.address}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Order Summary */}
                 <div className="bg-secondary/50 rounded-xl p-4 space-y-2">
@@ -261,7 +423,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     </span>
                     <span className="font-medium">{formatPrice(total)} F</span>
                   </div>
-                  
+
                   {deliveryMode === "delivery" && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Livraison</span>
@@ -284,20 +446,20 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
                   {!isFreeDelivery && deliveryMode === "delivery" && (
                     <p className="text-xs text-muted-foreground text-center pt-2">
-                      💡 Encore {formatPrice(freeDeliveryThreshold - total)} F pour la livraison gratuite
+                      💡 Encore {formatPrice(freeDeliveryThreshold - total)} F pour la
+                      livraison gratuite
                     </p>
                   )}
                 </div>
               </form>
 
               {/* Footer */}
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border flex-shrink-0">
                 <Button
                   type="submit"
                   onClick={handleSubmit}
                   disabled={!isFormValid || isSubmitting}
-                  className="w-full h-12 text-base font-semibold"
-                  style={{ backgroundColor: "#25D366" }}
+                  className="w-full h-12 text-base font-semibold bg-[#25D366] hover:bg-[#20BD5A] text-white"
                 >
                   {isSubmitting ? (
                     <>
@@ -306,11 +468,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     </>
                   ) : (
                     <>
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                       </svg>
                       Commander via WhatsApp
