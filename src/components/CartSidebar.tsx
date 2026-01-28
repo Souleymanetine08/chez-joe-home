@@ -172,8 +172,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                   {/* Checkout Button */}
                   <Button
                     onClick={handleCheckout}
+                    variant="whatsapp"
                     className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold"
-                    style={{ backgroundColor: "#25D366" }}
                   >
                     <svg
                       className="w-5 h-5 sm:w-6 sm:h-6 mr-2"

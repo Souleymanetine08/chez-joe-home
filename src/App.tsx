@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import ProductDetail from "./pages/ProductDetail";
 import OrderTracking from "./pages/OrderTracking";
+import PopularProducts from "./pages/PopularProducts";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/produit/:id" element={<ProductDetail />} />
             <Route path="/suivi/:trackingId" element={<OrderTracking />} />
+            <Route path="/populaires" element={<PopularProducts />} />
             <Route path="/login" element={<Login />} />
             
             {/* Admin Routes */}

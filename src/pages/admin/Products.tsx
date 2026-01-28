@@ -114,45 +114,86 @@ export default function Products() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isAdditional = false) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Veuillez sélectionner une image");
-      return;
-    }
+    // For main image, only take the first file
+    if (!isAdditional) {
+      const file = files[0];
+      if (!file.type.startsWith("image/")) {
+        toast.error("Veuillez sélectionner une image");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("L'image ne doit pas dépasser 5 Mo");
+        return;
+      }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("L'image ne doit pas dépasser 5 Mo");
-      return;
-    }
-
-    if (isAdditional) {
-      setIsUploadingAdditional(true);
-    } else {
       setIsUploading(true);
+      try {
+        const imageUrl = await uploadProductImage(file);
+        if (imageUrl) {
+          setFormData({ ...formData, image_url: imageUrl });
+          toast.success("Image principale uploadée");
+        } else {
+          toast.error("Erreur lors de l'upload");
+        }
+      } catch (error) {
+        toast.error("Erreur lors de l'upload");
+        console.error(error);
+      } finally {
+        setIsUploading(false);
+      }
+      return;
     }
+
+    // For additional images, support multiple files
+    const validFiles = Array.from(files).filter(file => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} n'est pas une image`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} dépasse 5 Mo`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Limit to remaining slots
+    const remainingSlots = 10 - formData.images.length;
+    const filesToUpload = validFiles.slice(0, remainingSlots);
+
+    if (filesToUpload.length < validFiles.length) {
+      toast.warning(`Seulement ${filesToUpload.length} images seront uploadées (max 10)`);
+    }
+
+    setIsUploadingAdditional(true);
+    const uploadedUrls: string[] = [];
 
     try {
-      const imageUrl = await uploadProductImage(file);
-      if (imageUrl) {
-        if (isAdditional) {
-          setFormData({ ...formData, images: [...formData.images, imageUrl] });
-        } else {
-          setFormData({ ...formData, image_url: imageUrl });
+      for (const file of filesToUpload) {
+        const imageUrl = await uploadProductImage(file);
+        if (imageUrl) {
+          uploadedUrls.push(imageUrl);
         }
-        toast.success("Image uploadée");
-      } else {
-        toast.error("Erreur lors de l'upload");
+      }
+
+      if (uploadedUrls.length > 0) {
+        setFormData({ ...formData, images: [...formData.images, ...uploadedUrls] });
+        toast.success(`${uploadedUrls.length} image(s) uploadée(s)`);
       }
     } catch (error) {
       toast.error("Erreur lors de l'upload");
       console.error(error);
     } finally {
-      setIsUploading(false);
       setIsUploadingAdditional(false);
+      // Reset the input
+      if (additionalFileInputRef.current) {
+        additionalFileInputRef.current.value = "";
+      }
     }
   };
 
@@ -426,8 +467,8 @@ export default function Products() {
               {/* Additional Images */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Images supplémentaires ({formData.images.length}/3)</Label>
-                  {formData.images.length < 3 && (
+                  <Label>Images supplémentaires ({formData.images.length}/10)</Label>
+                  {formData.images.length < 10 && (
                     <Button
                       type="button"
                       variant="outline"
@@ -439,8 +480,8 @@ export default function Products() {
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Ajouter
+                          <Images className="h-4 w-4 mr-1" />
+                          Ajouter plusieurs
                         </>
                       )}
                     </Button>
@@ -449,6 +490,7 @@ export default function Products() {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   ref={additionalFileInputRef}
                   onChange={(e) => handleImageUpload(e, true)}
@@ -475,7 +517,7 @@ export default function Products() {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {totalImages < 3 && `Ajoutez au moins 3 images pour la page détail (${totalImages}/3)`}
+                  {totalImages < 3 ? `Ajoutez au moins 3 images pour la page détail (${totalImages}/3)` : "Vous pouvez sélectionner plusieurs images à la fois"}
                 </p>
               </div>
 

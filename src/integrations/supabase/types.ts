@@ -47,10 +47,12 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          discount_amount: number | null
           id: string
           items: Json
           notes: string | null
           notified_at: string | null
+          promo_code_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           total: number
           tracking_id: string | null
@@ -61,10 +63,12 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          discount_amount?: number | null
           id?: string
           items: Json
           notes?: string | null
           notified_at?: string | null
+          promo_code_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total: number
           tracking_id?: string | null
@@ -75,16 +79,73 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          discount_amount?: number | null
           id?: string
           items?: Json
           notes?: string | null
           notified_at?: string | null
+          promo_code_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
           tracking_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_available: boolean
+          name: string
+          price_adjustment: number
+          product_id: string
+          stock: number
+          updated_at: string
+          variant_type: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_available?: boolean
+          name: string
+          price_adjustment?: number
+          product_id: string
+          stock?: number
+          updated_at?: string
+          variant_type?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_available?: boolean
+          name?: string
+          price_adjustment?: number
+          product_id?: string
+          stock?: number
+          updated_at?: string
+          variant_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -144,6 +205,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_order_amount: number | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_amount?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_amount?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
       }
       site_sections: {
         Row: {
