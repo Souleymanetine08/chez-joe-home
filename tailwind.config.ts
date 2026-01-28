@@ -58,6 +58,14 @@ export default {
           light: "hsl(var(--gold-light))",
           foreground: "hsl(var(--gold-foreground))",
         },
+        whatsapp: {
+          DEFAULT: "hsl(var(--whatsapp))",
+          foreground: "hsl(var(--whatsapp-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -79,6 +87,7 @@ export default {
         'medium': 'var(--shadow-medium)',
         'strong': 'var(--shadow-strong)',
         'gold': 'var(--shadow-gold)',
+        'whatsapp': 'var(--shadow-whatsapp)',
       },
       keyframes: {
         "accordion-down": {

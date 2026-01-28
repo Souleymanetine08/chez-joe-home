@@ -17,6 +17,14 @@
     --gold-light: 43 62% 82%;
     --gold-foreground: 0 0% 100%;
     
+    /* WhatsApp Green */
+    --whatsapp: 142 70% 49%;
+    --whatsapp-foreground: 0 0% 100%;
+    
+    /* Success */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
     /* Background & Surfaces */
     --background: 40 33% 98%;
     --foreground: 0 0% 10%;
@@ -61,6 +69,7 @@
     --shadow-medium: 0 4px 20px hsla(0, 0%, 0%, 0.12);
     --shadow-strong: 0 8px 30px hsla(0, 0%, 0%, 0.15);
     --shadow-gold: 0 4px 20px hsla(43, 72%, 52%, 0.25);
+    --shadow-whatsapp: 0 4px 20px hsla(142, 70%, 49%, 0.25);
   }
 
   .dark {

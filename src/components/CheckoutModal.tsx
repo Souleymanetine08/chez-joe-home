@@ -459,7 +459,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   type="submit"
                   onClick={handleSubmit}
                   disabled={!isFormValid || isSubmitting}
-                  className="w-full h-12 text-base font-semibold bg-[#25D366] hover:bg-[#20BD5A] text-white"
+                  variant="whatsapp"
+                  className="w-full h-12 text-base font-semibold"
                 >
                   {isSubmitting ? (
                     <>
