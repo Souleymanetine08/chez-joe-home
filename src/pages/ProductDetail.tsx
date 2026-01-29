@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, Minus, Plus, ShoppingCart, Check, ChevronRight } from "lucide-react";
+import { ChevronLeft, Minus, Plus, ShoppingCart, Check, ChevronRight, AlertCircle } from "lucide-react";
 import { useProduct } from "@/hooks/useProducts";
+import { useProductVariants, ProductVariant } from "@/hooks/useProductVariants";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import SimpleHeader from "@/components/SimpleHeader";
 import SimpleFooter from "@/components/SimpleFooter";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
@@ -18,28 +20,62 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: product, isLoading, error } = useProduct(id || "");
+  const { data: variants } = useProductVariants(id || "");
   const { addToCart, isInCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   // Get all images (main image + additional images)
   const allImages = product
     ? [product.image_url, ...(product.images || [])].filter(Boolean) as string[]
     : [];
 
+  // Calculate price with variant adjustment
+  const basePrice = product?.price || 0;
+  const variantAdjustment = selectedVariant?.price_adjustment || 0;
+  const finalPrice = basePrice + variantAdjustment;
+
+  // Check if variant is in stock
+  const isVariantInStock = selectedVariant 
+    ? selectedVariant.is_available && selectedVariant.stock > 0
+    : product?.in_stock ?? true;
+
+  // Group variants by type
+  const variantsByType = variants?.reduce((acc, variant) => {
+    if (!acc[variant.variant_type]) {
+      acc[variant.variant_type] = [];
+    }
+    acc[variant.variant_type].push(variant);
+    return acc;
+  }, {} as Record<string, ProductVariant[]>) || {};
+
   const handleAddToCart = () => {
     if (!product) return;
+    
+    const cartId = selectedVariant 
+      ? parseInt(product.id.slice(0, 6) + selectedVariant.id.slice(0, 2), 16)
+      : parseInt(product.id.slice(0, 8), 16);
+    
+    const itemName = selectedVariant 
+      ? `${product.name} - ${selectedVariant.name}`
+      : product.name;
+
     for (let i = 0; i < quantity; i++) {
       addToCart({
-        id: parseInt(product.id.slice(0, 8), 16), // Convert UUID to number for cart
-        name: product.name,
-        price: product.price,
+        id: cartId,
+        name: itemName,
+        price: finalPrice,
         image: product.image_url || "/placeholder.svg",
       });
     }
   };
 
-  const inCart = product ? isInCart(parseInt(product.id.slice(0, 8), 16)) : false;
+  const inCart = product 
+    ? isInCart(selectedVariant 
+        ? parseInt(product.id.slice(0, 6) + selectedVariant.id.slice(0, 2), 16)
+        : parseInt(product.id.slice(0, 8), 16))
+    : false;
 
   if (isLoading) {
     return (
@@ -85,6 +121,13 @@ export default function ProductDetail() {
     navigate("/");
     return null;
   }
+
+  const variantTypeLabels: Record<string, string> = {
+    color: "Couleur",
+    size: "Taille",
+    material: "Matériau",
+    other: "Option",
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,7 +178,7 @@ export default function ProductDetail() {
               )}
 
               {/* Stock Badge */}
-              {!product.in_stock && (
+              {!isVariantInStock && (
                 <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-medium">
                   Épuisé
                 </div>
@@ -183,8 +226,13 @@ export default function ProductDetail() {
             {/* Price */}
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-primary">
-                {formatPrice(product.price)} F
+                {formatPrice(finalPrice)} F
               </span>
+              {variantAdjustment !== 0 && (
+                <span className="text-lg text-muted-foreground line-through">
+                  {formatPrice(basePrice)} F
+                </span>
+              )}
             </div>
 
             {/* Description */}
@@ -192,6 +240,61 @@ export default function ProductDetail() {
               <p className="text-muted-foreground leading-relaxed">
                 {product.description}
               </p>
+            )}
+
+            {/* Variants Selection */}
+            {Object.keys(variantsByType).length > 0 && (
+              <div className="space-y-4">
+                {Object.entries(variantsByType).map(([type, typeVariants]) => (
+                  <div key={type} className="space-y-2">
+                    <label className="text-sm font-medium">
+                      {variantTypeLabels[type] || type}
+                      {selectedVariant?.variant_type === type && (
+                        <span className="text-primary ml-2">: {selectedVariant.name}</span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {typeVariants.map((variant) => {
+                        const isSelected = selectedVariant?.id === variant.id;
+                        const isAvailable = variant.is_available && variant.stock > 0;
+                        
+                        return (
+                          <button
+                            key={variant.id}
+                            onClick={() => setSelectedVariant(isSelected ? null : variant)}
+                            disabled={!isAvailable}
+                            className={`relative px-4 py-2 rounded-lg border-2 transition-all ${
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary"
+                                : isAvailable
+                                  ? "border-border hover:border-primary/50"
+                                  : "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                            }`}
+                          >
+                            <span className="font-medium">{variant.name}</span>
+                            {variant.price_adjustment !== 0 && (
+                              <span className="ml-1 text-xs">
+                                ({variant.price_adjustment > 0 ? "+" : ""}{formatPrice(variant.price_adjustment)} F)
+                              </span>
+                            )}
+                            {isSelected && (
+                              <Check className="absolute -top-1 -right-1 h-4 w-4 text-primary bg-background rounded-full" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Stock indicator for selected variant */}
+                    {selectedVariant?.variant_type === type && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Plus que {selectedVariant.stock} en stock
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* Dimensions */}
@@ -246,7 +349,7 @@ export default function ProductDetail() {
               <Button
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={!product.in_stock}
+                disabled={!isVariantInStock}
                 className={`w-full h-14 text-lg font-semibold ${
                   inCart ? "bg-accent hover:bg-accent/90" : ""
                 }`}

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Store, Truck, Check, Loader2, AlertCircle } from "lucide-react";
+import { X, MapPin, Store, Truck, Check, Loader2, AlertCircle, Ticket, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/context/CartContext";
 import { useStoreInfo, useDeliveryOptions, usePromoSettings } from "@/hooks/useSiteSettings";
+import { useValidatePromoCode, useIncrementPromoUsage, PromoCode } from "@/hooks/usePromoCodes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,6 +30,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { data: storeInfo } = useStoreInfo();
   const { data: deliveryOptions } = useDeliveryOptions();
   const { data: promoSettings } = usePromoSettings();
+  const validatePromoCode = useValidatePromoCode();
+  const incrementPromoUsage = useIncrementPromoUsage();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -38,6 +41,15 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    promo: PromoCode;
+    discountAmount: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLTextAreaElement>(null);
@@ -45,6 +57,10 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const freeDeliveryThreshold = storeInfo?.free_delivery_threshold || 50000;
   const isFreeDelivery = total >= freeDeliveryThreshold;
   const whatsappNumber = storeInfo?.whatsapp || "221773836624";
+
+  // Calculate final total with discount
+  const discountAmount = appliedPromo?.discountAmount || 0;
+  const finalTotal = Math.max(0, total - discountAmount);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -58,6 +74,15 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [isOpen]);
+
+  // Reset promo when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPromoCode("");
+      setAppliedPromo(null);
+      setPromoError(null);
+    }
   }, [isOpen]);
 
   // Real-time validation
@@ -87,6 +112,37 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     return new Intl.NumberFormat("fr-SN").format(price);
   };
 
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+
+    setIsValidatingPromo(true);
+    setPromoError(null);
+
+    try {
+      const result = await validatePromoCode.mutateAsync({
+        code: promoCode.trim(),
+        orderTotal: total,
+      });
+
+      setAppliedPromo({
+        promo: result.promo,
+        discountAmount: result.discountAmount,
+      });
+      toast.success(`Code "${result.promo.code}" appliqué !`);
+    } catch (error: any) {
+      setPromoError(error.message);
+      setAppliedPromo(null);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode("");
+    setPromoError(null);
+  };
+
   const generateWhatsAppMessage = (trackingId: string) => {
     let message = `🛒 NOUVELLE COMMANDE - CHEZ JOE\n\n`;
     message += `CLIENT : ${customerName}\n`;
@@ -103,7 +159,15 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       message += `• ${item.quantity}x ${item.name} (${formatPrice(lineTotal)} F)\n`;
     });
 
-    message += `\nTOTAL PRODUITS : ${formatPrice(total)} FCFA\n\n`;
+    message += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `TOTAL PRODUITS : ${formatPrice(total)} FCFA\n`;
+
+    if (appliedPromo) {
+      message += `RÉDUCTION (${appliedPromo.promo.code}) : -${formatPrice(discountAmount)} FCFA\n`;
+      message += `TOTAL À PAYER : ${formatPrice(finalTotal)} FCFA\n`;
+    }
+
+    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
     if (deliveryMode === "pickup") {
       message += `MODE : Retrait en boutique\n`;
@@ -186,7 +250,9 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           items: orderItems,
-          total: total,
+          total: finalTotal,
+          discount_amount: discountAmount,
+          promo_code_id: appliedPromo?.promo.id || null,
           notes:
             deliveryMode === "delivery"
               ? `Adresse: ${customerAddress}${isFreeDelivery ? " | Livraison offerte" : " | Livraison à régler au livreur"}`
@@ -197,6 +263,11 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
         .single();
 
       if (error) throw error;
+
+      // Increment promo code usage
+      if (appliedPromo) {
+        await incrementPromoUsage.mutateAsync(appliedPromo.promo.id);
+      }
 
       const trackingId = data?.tracking_id || "";
 
@@ -220,6 +291,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       setCustomerAddress("");
       setTouched({});
       setErrors({});
+      setAppliedPromo(null);
+      setPromoCode("");
     } catch (error) {
       console.error("Error saving order:", error);
       toast.error("Erreur lors de l'envoi de la commande");
@@ -415,6 +488,69 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   )}
                 </AnimatePresence>
 
+                {/* Promo Code Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="promo">
+                    <Ticket className="h-4 w-4 inline mr-1" />
+                    Code promo
+                  </Label>
+                  
+                  {appliedPromo ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex items-center justify-between bg-accent/20 border border-accent rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-accent-foreground" />
+                        <span className="font-mono font-medium">{appliedPromo.promo.code}</span>
+                        <span className="text-sm text-accent-foreground">
+                          (-{formatPrice(discountAmount)} F)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemovePromo}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        id="promo"
+                        value={promoCode}
+                        onChange={(e) => {
+                          setPromoCode(e.target.value.toUpperCase());
+                          setPromoError(null);
+                        }}
+                        placeholder="Entrez votre code"
+                        className={`font-mono uppercase ${promoError ? "border-destructive" : ""}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleApplyPromo}
+                        disabled={!promoCode.trim() || isValidatingPromo}
+                      >
+                        {isValidatingPromo ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Appliquer"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {promoError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {promoError}
+                    </p>
+                  )}
+                </div>
+
                 {/* Order Summary */}
                 <div className="bg-secondary/50 rounded-xl p-4 space-y-2">
                   <div className="flex justify-between text-sm">
@@ -424,11 +560,20 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     <span className="font-medium">{formatPrice(total)} F</span>
                   </div>
 
+                  {appliedPromo && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Réduction</span>
+                      <span className="text-accent-foreground font-medium">
+                        -{formatPrice(discountAmount)} F
+                      </span>
+                    </div>
+                  )}
+
                   {deliveryMode === "delivery" && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Livraison</span>
                       {isFreeDelivery ? (
-                        <span className="text-green-600 font-medium">
+                        <span className="text-accent-foreground font-medium">
                           🎁 {promoSettings?.free_delivery_message || "Offerte"}
                         </span>
                       ) : (
@@ -441,7 +586,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
                   <div className="pt-2 border-t border-border flex justify-between font-bold">
                     <span>Total</span>
-                    <span className="text-primary">{formatPrice(total)} FCFA</span>
+                    <span className="text-primary">{formatPrice(finalTotal)} FCFA</span>
                   </div>
 
                   {!isFreeDelivery && deliveryMode === "delivery" && (

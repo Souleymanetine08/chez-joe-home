@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useProductVariants, useCreateProductVariant, useUpdateProductVariant, useDeleteProductVariant, ProductVariant } from "@/hooks/useProductVariants";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadProductImage } from "@/lib/uploadImage";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,9 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search, Loader2, Package, Upload, X, Eye, EyeOff, Images } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, Package, Upload, X, Eye, EyeOff, Images, Palette, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-SN", {
@@ -57,6 +59,14 @@ interface ProductFormData {
   dimensions_unit: string;
 }
 
+interface VariantFormData {
+  name: string;
+  variant_type: string;
+  price_adjustment: string;
+  stock: string;
+  is_available: boolean;
+}
+
 const emptyFormData: ProductFormData = {
   name: "",
   description: "",
@@ -69,6 +79,14 @@ const emptyFormData: ProductFormData = {
   size_small: "",
   size_large: "",
   dimensions_unit: "cm",
+};
+
+const emptyVariantData: VariantFormData = {
+  name: "",
+  variant_type: "color",
+  price_adjustment: "0",
+  stock: "10",
+  is_available: true,
 };
 
 export default function Products() {
@@ -85,6 +103,18 @@ export default function Products() {
   const [isUploadingAdditional, setIsUploadingAdditional] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const additionalFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Variants state
+  const [showVariantsSection, setShowVariantsSection] = useState(false);
+  const [variantFormData, setVariantFormData] = useState<VariantFormData>(emptyVariantData);
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
+  const [isSavingVariant, setIsSavingVariant] = useState(false);
+  
+  // Fetch variants for editing product
+  const { data: productVariants } = useProductVariants(editingProduct?.id || "");
+  const createVariant = useCreateProductVariant();
+  const updateVariant = useUpdateProductVariant();
+  const deleteVariant = useDeleteProductVariant();
 
   const filteredProducts = products?.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -106,10 +136,14 @@ export default function Products() {
         size_large: product.size_large || "",
         dimensions_unit: product.dimensions_unit || "cm",
       });
+      setShowVariantsSection(true);
     } else {
       setEditingProduct(null);
       setFormData(emptyFormData);
+      setShowVariantsSection(false);
     }
+    setVariantFormData(emptyVariantData);
+    setEditingVariant(null);
     setIsDialogOpen(true);
   };
 
@@ -285,7 +319,86 @@ export default function Products() {
     }
   };
 
+  // Variant handlers
+  const handleAddVariant = async () => {
+    if (!editingProduct) return;
+    
+    setIsSavingVariant(true);
+    try {
+      await createVariant.mutateAsync({
+        product_id: editingProduct.id,
+        name: variantFormData.name,
+        variant_type: variantFormData.variant_type,
+        price_adjustment: parseInt(variantFormData.price_adjustment) || 0,
+        stock: parseInt(variantFormData.stock) || 0,
+        is_available: variantFormData.is_available,
+        display_order: (productVariants?.length || 0) + 1,
+      });
+      setVariantFormData(emptyVariantData);
+      toast.success("Variante ajoutée");
+    } catch (error) {
+      toast.error("Erreur lors de l'ajout");
+      console.error(error);
+    } finally {
+      setIsSavingVariant(false);
+    }
+  };
+
+  const handleEditVariant = (variant: ProductVariant) => {
+    setEditingVariant(variant);
+    setVariantFormData({
+      name: variant.name,
+      variant_type: variant.variant_type,
+      price_adjustment: variant.price_adjustment.toString(),
+      stock: variant.stock.toString(),
+      is_available: variant.is_available,
+    });
+  };
+
+  const handleUpdateVariant = async () => {
+    if (!editingVariant) return;
+    
+    setIsSavingVariant(true);
+    try {
+      await updateVariant.mutateAsync({
+        id: editingVariant.id,
+        name: variantFormData.name,
+        variant_type: variantFormData.variant_type,
+        price_adjustment: parseInt(variantFormData.price_adjustment) || 0,
+        stock: parseInt(variantFormData.stock) || 0,
+        is_available: variantFormData.is_available,
+      });
+      setVariantFormData(emptyVariantData);
+      setEditingVariant(null);
+      toast.success("Variante mise à jour");
+    } catch (error) {
+      toast.error("Erreur lors de la mise à jour");
+      console.error(error);
+    } finally {
+      setIsSavingVariant(false);
+    }
+  };
+
+  const handleDeleteVariant = async (variant: ProductVariant) => {
+    if (!confirm("Supprimer cette variante ?")) return;
+    
+    try {
+      await deleteVariant.mutateAsync({ id: variant.id, productId: variant.product_id });
+      toast.success("Variante supprimée");
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+      console.error(error);
+    }
+  };
+
   const totalImages = formData.image_url ? 1 + formData.images.length : formData.images.length;
+
+  const variantTypeOptions = [
+    { value: "color", label: "Couleur" },
+    { value: "size", label: "Taille" },
+    { value: "material", label: "Matériau" },
+    { value: "other", label: "Autre" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -305,7 +418,7 @@ export default function Products() {
               Ajouter
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? "Modifier le produit" : "Nouveau produit"}
@@ -497,7 +610,7 @@ export default function Products() {
                 />
                 
                 {formData.images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {formData.images.map((img, index) => (
                       <div key={index} className="relative">
                         <img
@@ -549,6 +662,175 @@ export default function Products() {
                   />
                 </div>
               </div>
+
+              {/* Variants Section (only for existing products) */}
+              {editingProduct && (
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-semibold">Variantes du produit</Label>
+                    </div>
+                    <Badge variant="secondary">{productVariants?.length || 0} variante(s)</Badge>
+                  </div>
+
+                  {/* Variant Form */}
+                  <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nom *</Label>
+                        <Input
+                          placeholder="Ex: Rouge, Taille L"
+                          value={variantFormData.name}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select
+                          value={variantFormData.variant_type}
+                          onValueChange={(value) => setVariantFormData({ ...variantFormData, variant_type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {variantTypeOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Ajustement prix (FCFA)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={variantFormData.price_adjustment}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, price_adjustment: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Stock</Label>
+                        <Input
+                          type="number"
+                          placeholder="10"
+                          value={variantFormData.stock}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, stock: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Disponible</Label>
+                        <div className="flex items-center h-10">
+                          <Switch
+                            checked={variantFormData.is_available}
+                            onCheckedChange={(checked) => setVariantFormData({ ...variantFormData, is_available: checked })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {editingVariant ? (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleUpdateVariant}
+                            disabled={!variantFormData.name || isSavingVariant}
+                          >
+                            {isSavingVariant ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mettre à jour"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingVariant(null);
+                              setVariantFormData(emptyVariantData);
+                            }}
+                          >
+                            Annuler
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddVariant}
+                          disabled={!variantFormData.name || isSavingVariant}
+                        >
+                          {isSavingVariant ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                            <>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Ajouter variante
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Existing Variants List */}
+                  {productVariants && productVariants.length > 0 && (
+                    <div className="space-y-2">
+                      {productVariants.map((variant) => (
+                        <div
+                          key={variant.id}
+                          className="flex items-center justify-between bg-card border border-border rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Palette className="h-4 w-4 text-primary" />
+                            <div>
+                              <p className="font-medium text-sm">{variant.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {variantTypeOptions.find(o => o.value === variant.variant_type)?.label || variant.variant_type}
+                                {variant.price_adjustment !== 0 && (
+                                  <span className="ml-2">
+                                    ({variant.price_adjustment > 0 ? "+" : ""}{formatPrice(variant.price_adjustment)})
+                                  </span>
+                                )}
+                                <span className="ml-2">• Stock: {variant.stock}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Badge variant={variant.is_available ? "default" : "secondary"}>
+                              {variant.is_available ? "Dispo" : "Indispo"}
+                            </Badge>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditVariant(variant)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteVariant(variant)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!productVariants || productVariants.length === 0) && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Aucune variante. Ajoutez des couleurs, tailles ou autres options.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={isSaving}>
                 {isSaving ? (
