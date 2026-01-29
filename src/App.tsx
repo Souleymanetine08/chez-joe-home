@@ -17,6 +17,7 @@ import Categories from "./pages/admin/Categories";
 import Orders from "./pages/admin/Orders";
 import Users from "./pages/admin/Users";
 import Settings from "./pages/admin/Settings";
+import PromoCodes from "./pages/admin/PromoCodes";
 import { useAuth } from "./hooks/useAuth";
 import { CartProvider } from "./context/CartContext";
 
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="products" element={<Products />} />
               <Route path="categories" element={<Categories />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="promo-codes" element={<PromoCodes />} />
               <Route path="settings" element={<Settings />} />
               <Route
                 path="users"

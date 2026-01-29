@@ -9,6 +9,7 @@ import {
   Store,
   Users,
   Settings,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navItems = [
   { to: "/admin/products", icon: Package, label: "Produits" },
   { to: "/admin/categories", icon: FolderTree, label: "Catégories" },
   { to: "/admin/orders", icon: ShoppingCart, label: "Commandes" },
+  { to: "/admin/promo-codes", icon: Ticket, label: "Codes Promo" },
   { to: "/admin/settings", icon: Settings, label: "Paramètres" },
 ];
 
